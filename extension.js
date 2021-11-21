@@ -30,6 +30,7 @@ const getAuthor = (comment) => {
 const getStorage = () => JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 const getUrl = (username) => `https://dou.ua/users/${username}/`;
 (() => {
+    let inProgressPromises = 0;
     const storage = getStorage();
     const index = {};
     const isCommentFromBanned = (comment) => !!storage[getAuthor(comment)];
@@ -65,17 +66,33 @@ const getUrl = (username) => `https://dou.ua/users/${username}/`;
             }
         };
         author.parentElement.appendChild(button);
-        const infoBlock = document.createElement("span");
-        const registration = document.createElement("span");
         const stats = index[getAuthor(comment)].stats;
-        if (!stats) {
+        if (!stats?.activitiesShort && !stats?.registrationShort) {
             return;
         }
-        registration.innerHTML = stats.registration;
-        infoBlock.appendChild(stats.activities[0]);
-        infoBlock.appendChild(stats.activities[1]);
-        infoBlock.appendChild(registration);
-        infoBlock.className = "_ban_infoblock";
+        const infoBlock = document.createElement("span");
+        let text = [];
+        if (stats.activitiesShort[0]) {
+            text.push(`${stats.activitiesShort[0]} c.`);
+        }
+        if (stats.activitiesShort[1]) {
+            text.push(`${stats.activitiesShort[1]} t.`);
+        }
+        text.push(`${stats.registrationShort} yo.`);
+        infoBlock.innerText = text.join(" | ");
+        infoBlock.className = "_ban_infoblock cpointer";
+        infoBlock.title = 'click';
+        infoBlock.onclick = (e) => {
+            e.preventDefault();
+            const infoBlock = e.target;
+            const authorParent = infoBlock.parentElement;
+            authorParent.removeChild(infoBlock);
+            const newInfoBlock = document.createElement('span');
+            newInfoBlock.innerHTML = stats.registration;
+            stats.activities.forEach(c => newInfoBlock.appendChild(c));
+            newInfoBlock.className = "_ban_infoblock";
+            authorParent.appendChild(newInfoBlock);
+        };
         author.parentElement.appendChild(infoBlock);
     }
     function hideContentIfNeeded(comment) {
@@ -111,7 +128,7 @@ const getUrl = (username) => `https://dou.ua/users/${username}/`;
             }
         }
     }
-    async function indexOne(comment) {
+    function indexOne(comment) {
         const authorName = getAuthor(comment);
         if (!authorName) {
             return;
@@ -125,38 +142,54 @@ const getUrl = (username) => `https://dou.ua/users/${username}/`;
         }
         index[authorName].push(comment);
         if (!index[authorName].stats) {
-            index[authorName].stats = await fetchStats(authorName);
+            index[authorName].stats = fetchStats(authorName);
         }
     }
     async function fetchStats(username) {
+        if (inProgressPromises > 2) {
+            setTimeout(() => fetchStats(username), 100);
+            return Promise.resolve();
+        }
+        inProgressPromises++;
         const response = await fetch(getUrl(username));
         if (!response.ok) {
             return;
         }
+        inProgressPromises--;
         const text = await response.text();
         const html = document.createElement("html");
         html.innerHTML = text;
-        return {
-            registration: html
-                .querySelectorAll(".status-info")[0]
-                .innerText.replace(/\t/g, "")
-                .trim()
-                .split("\n")
-                .slice(-1)[0],
-            activities: [
-                ...html.querySelectorAll(".b-content-menu")[0].childNodes,
-            ]
-                .filter((e) => e.innerText)
-                .slice(1, 3)
-                .map((e) => e.children[0]),
+        const registration = html
+            .querySelectorAll(".status-info")[0]
+            .innerText.replace(/\t/g, "")
+            .trim()
+            .split("\n")
+            .slice(-1)[0];
+        const registrationShort = (2021 - parseInt(registration.replace(/[^\d]/g, "").slice(-4), 10)).toString(10);
+        const activities = [
+            ...html.querySelectorAll(".b-content-menu")[0].childNodes,
+        ]
+            .filter((e) => e.innerText)
+            .slice(1, 3)
+            .map((e) => e.children[0]);
+        const activitiesShort = activities
+            .map((e) => e.querySelector("sub")?.innerText)
+            .filter((_) => _);
+        index[username].stats = {
+            registration,
+            registrationShort,
+            activities,
+            activitiesShort,
         };
+        index[username].forEach(addBanButtonAndInfo);
     }
     console.time(STORAGE_KEY);
-    [...document.querySelectorAll(SELECTORS.comment)].forEach(async (comment) => {
-        await indexOne(comment);
+    [...document.querySelectorAll(SELECTORS.comment)].forEach((comment) => {
+        indexOne(comment);
         addBanButtonAndInfo(comment);
         hideContentIfNeeded(comment);
     });
+    window.__dou_black_list__ = index;
     console.timeEnd(STORAGE_KEY);
 })();
 const SETTINGS_SELECTORS = {

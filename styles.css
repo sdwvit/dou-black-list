@@ -14,8 +14,17 @@
   opacity: 0.5;
 }
 
+.cpointer {
+  cursor: pointer;
+}
+
 ._ban_infoblock {
+  opacity: 0.5;
   font-size: 8px;
+}
+
+._ban_infoblock:hover {
+  opacity: 1;
 }
 
 ._ban_infoblock div {
