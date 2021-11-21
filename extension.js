@@ -1,3 +1,4 @@
+const YEAR = new Date().getFullYear();
 const SELECTORS = {
     comment: ".comment",
     author: ".b-post-author > a",
@@ -165,7 +166,7 @@ const getUrl = (username) => `https://dou.ua/users/${username}/`;
             .trim()
             .split("\n")
             .slice(-1)[0];
-        const registrationShort = (2021 - parseInt(registration.replace(/[^\d]/g, "").slice(-4), 10)).toString(10);
+        const registrationShort = (YEAR - parseInt(registration.replace(/[^\d]/g, "").slice(-4), 10)).toString(10);
         const activities = [
             ...html.querySelectorAll(".b-content-menu")[0].childNodes,
         ]
