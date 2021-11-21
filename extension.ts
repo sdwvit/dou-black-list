@@ -3,6 +3,7 @@ type Stats = {
   activities: Element[];
   registrationShort: string;
   activitiesShort: string[];
+  shouldShowLongVersion?: boolean
 };
 type StatsProperty = {
   stats: Stats | Promise<void>;
@@ -68,6 +69,11 @@ const getUrl = (username) => `https://dou.ua/users/${username}/`;
     if (existingBanButton) {
       author.parentElement.removeChild(existingBanButton);
     }
+    const existingInfoblock =
+      author.parentElement.querySelectorAll("._ban_infoblock")[0];
+    if (existingInfoblock) {
+      author.parentElement.removeChild(existingInfoblock);
+    }
     const button = document.createElement("button");
     button.classList.add("_ban_button");
     button.innerText = isCommentFromBanned(comment) ? "😇" : "🤡";
@@ -95,27 +101,26 @@ const getUrl = (username) => `https://dou.ua/users/${username}/`;
     }
     const infoBlock = document.createElement("span");
     let text = [];
-    if (stats.activitiesShort[0]) {
-      text.push(`${stats.activitiesShort[0]} c.`);
+    if (stats.shouldShowLongVersion) {
+      infoBlock.innerHTML = stats.registration;
+      stats.activities.forEach(c => infoBlock.appendChild(c));
+    } else {
+      if (stats.activitiesShort[0]) {
+        text.push(`${stats.activitiesShort[0]} c.`);
+      }
+      if (stats.activitiesShort[1]) {
+        text.push(`${stats.activitiesShort[1]} t.`);
+      }
+      text.push(`${stats.registrationShort} yo.`);
+      infoBlock.innerText = text.join(" | ");
+      infoBlock.onclick = (e) => {
+        e.preventDefault();
+        stats.shouldShowLongVersion = true;
+        addBanButtonAndInfo(comment);
+      }
     }
-    if (stats.activitiesShort[1]) {
-      text.push(`${stats.activitiesShort[1]} t.`);
-    }
-    text.push(`${stats.registrationShort} yo.`);
-    infoBlock.innerText = text.join(" | ");
     infoBlock.className = "_ban_infoblock cpointer";
-    infoBlock.title = 'click'
-    infoBlock.onclick = (e) => {
-      e.preventDefault();
-      const infoBlock = e.target as HTMLSpanElement;
-      const authorParent = infoBlock.parentElement;
-      authorParent.removeChild(infoBlock);
-      const newInfoBlock = document.createElement('span');
-      newInfoBlock.innerHTML = stats.registration;
-      stats.activities.forEach(c => newInfoBlock.appendChild(c));
-      newInfoBlock.className = "_ban_infoblock";
-      authorParent.appendChild(newInfoBlock)
-    }
+    infoBlock.title = "click";
     author.parentElement.appendChild(infoBlock);
   }
 
@@ -194,7 +199,9 @@ const getUrl = (username) => `https://dou.ua/users/${username}/`;
       .split("\n")
       .slice(-1)[0];
 
-    const registrationShort = (YEAR - parseInt(registration.replace(/[^\d]/g, "").slice(-4), 10)).toString(10);
+    const registrationShort = (
+      YEAR - parseInt(registration.replace(/[^\d]/g, "").slice(-4), 10)
+    ).toString(10);
 
     const activities = (
       [
