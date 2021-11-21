@@ -1,3 +1,12 @@
+type Stats = {
+  registration: string;
+  activities: Element[];
+  registrationShort: string;
+  activitiesShort: string[];
+};
+type StatsProperty = {
+  stats: Stats | Promise<void>;
+};
 type DouComment = HTMLElement;
 
 const SELECTORS = {
@@ -34,10 +43,12 @@ const getAuthor = (comment: DouComment) => {
 
 const getStorage = (): Record<string, boolean> =>
   JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+const getUrl = (username) => `https://dou.ua/users/${username}/`;
 
 (() => {
+  let inProgressPromises = 0;
   const storage = getStorage();
-  const index: Record<string, Array<DouComment>> = {};
+  const index: Record<string, Array<DouComment> & StatsProperty> = {};
   const isCommentFromBanned = (comment: DouComment) =>
     !!storage[getAuthor(comment)];
 
@@ -46,7 +57,7 @@ const getStorage = (): Record<string, boolean> =>
     localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
   }
 
-  function addBanButton(comment: DouComment) {
+  function addBanButtonAndInfo(comment: DouComment) {
     const author = getAuthorElement(comment);
     if (!getAuthor(comment)) {
       return;
@@ -70,13 +81,41 @@ const getStorage = (): Record<string, boolean> =>
         updateStorage(authorName, !storage[authorName]);
         const commentsByAuthor = index[authorName];
         commentsByAuthor.forEach((comment) => {
-          addBanButton(comment);
+          addBanButtonAndInfo(comment);
           hideContentIfNeeded(comment);
         });
         console.log(`Updated ${commentsByAuthor.length} comments`);
       }
     };
     author.parentElement.appendChild(button);
+    const stats = index[getAuthor(comment)].stats as Stats;
+    if (!stats?.activitiesShort && !stats?.registrationShort) {
+      return;
+    }
+    const infoBlock = document.createElement("span");
+    let text = [];
+    if (stats.activitiesShort[0]) {
+      text.push(`${stats.activitiesShort[0]} c.`);
+    }
+    if (stats.activitiesShort[1]) {
+      text.push(`${stats.activitiesShort[1]} t.`);
+    }
+    text.push(`${stats.registrationShort} yo.`);
+    infoBlock.innerText = text.join(" | ");
+    infoBlock.className = "_ban_infoblock cpointer";
+    infoBlock.title = 'click'
+    infoBlock.onclick = (e) => {
+      e.preventDefault();
+      const infoBlock = e.target as HTMLSpanElement;
+      const authorParent = infoBlock.parentElement;
+      authorParent.removeChild(infoBlock);
+      const newInfoBlock = document.createElement('span');
+      newInfoBlock.innerHTML = stats.registration;
+      stats.activities.forEach(c => newInfoBlock.appendChild(c));
+      newInfoBlock.className = "_ban_infoblock";
+      authorParent.appendChild(newInfoBlock)
+    }
+    author.parentElement.appendChild(infoBlock);
   }
 
   function hideContentIfNeeded(comment: DouComment) {
@@ -94,7 +133,7 @@ const getStorage = (): Record<string, boolean> =>
           // unhide
           comment.removeAttribute("data-banned");
           comment.innerHTML = content;
-          addBanButton(comment);
+          addBanButtonAndInfo(comment);
           comment.onclick = () => {};
         } else {
           // hide again
@@ -108,7 +147,7 @@ const getStorage = (): Record<string, boolean> =>
       if (content) {
         comment.removeAttribute("data-banned");
         comment.innerHTML = content;
-        addBanButton(comment);
+        addBanButtonAndInfo(comment);
         comment.onclick = () => {};
       }
     }
@@ -124,18 +163,67 @@ const getStorage = (): Record<string, boolean> =>
       return;
     }
     if (!index[authorName]) {
-      index[authorName] = [];
+      index[authorName] = [] as typeof index[string];
     }
     index[authorName].push(comment);
+
+    if (!index[authorName].stats) {
+      index[authorName].stats = fetchStats(authorName);
+    }
+  }
+
+  async function fetchStats(username): Promise<void> {
+    if (inProgressPromises > 2) {
+      setTimeout(() => fetchStats(username), 100);
+      return Promise.resolve();
+    }
+    inProgressPromises++;
+    const response = await fetch(getUrl(username));
+    if (!response.ok) {
+      return;
+    }
+    inProgressPromises--;
+    const text = await response.text();
+    const html = document.createElement("html");
+    html.innerHTML = text;
+    const registration = html
+      .querySelectorAll<HTMLDivElement>(".status-info")[0]
+      .innerText.replace(/\t/g, "")
+      .trim()
+      .split("\n")
+      .slice(-1)[0];
+
+    const registrationShort = (2021 - parseInt(registration.replace(/[^\d]/g, "").slice(-4), 10)).toString(10);
+
+    const activities = (
+      [
+        ...html.querySelectorAll(".b-content-menu")[0].childNodes,
+      ] as HTMLLIElement[]
+    )
+      .filter((e) => e.innerText)
+      .slice(1, 3)
+      .map((e) => e.children[0]);
+    const activitiesShort = activities
+      .map((e) => e.querySelector("sub")?.innerText)
+      .filter((_) => _);
+    index[username].stats = {
+      registration,
+      registrationShort,
+      activities,
+      activitiesShort,
+    };
+    index[username].forEach(addBanButtonAndInfo);
   }
 
   console.time(STORAGE_KEY);
   [...document.querySelectorAll(SELECTORS.comment)].forEach(
-      (comment: DouComment) => {
-        indexOne(comment);
-        addBanButton(comment);
-        hideContentIfNeeded(comment);
-      }
+    (comment: DouComment) => {
+      indexOne(comment);
+      addBanButtonAndInfo(comment);
+      hideContentIfNeeded(comment);
+    }
   );
+  // @ts-ignore
+  window.__dou_black_list__ = index;
   console.timeEnd(STORAGE_KEY);
 })();
