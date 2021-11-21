@@ -17,6 +17,10 @@
 - ban / unban capability
 - hides all messages from banned users with an ability to unhide by clicking each of them temporarily (sometimes you just want to see who you banned and pat yourself on the shoulder)
 - settings are exportable / importable on user settings page (click on your icon in the top right)
+- fetches info about users and shows a short summary next to the username
+- after clicking on it, shows human-readable explanation
+
+
 #### and much more to come! 
 
 ## Installation ⬇️⬇️⬇️⬇️⬇️⬇️
