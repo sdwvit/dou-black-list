@@ -45,7 +45,7 @@ const getAuthor = (comment: DouComment) => {
 
 const getStorage = (): Record<string, boolean> =>
   JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-const getUrl = (username) => `https://dou.ua/users/${username}/`;
+const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
 
 (() => {
   let inProgressPromises = 0;

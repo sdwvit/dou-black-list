@@ -29,7 +29,7 @@ const getAuthor = (comment) => {
     return getAuthorElement(comment)?.href?.match(/users\/(.+)\//)?.[1];
 };
 const getStorage = () => JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-const getUrl = (username) => `https://dou.ua/users/${username}/`;
+const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
 (() => {
     let inProgressPromises = 0;
     const storage = getStorage();
