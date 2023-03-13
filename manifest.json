@@ -1,15 +1,24 @@
 {
   "name": "DOU Block List",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Manage the Block List at https://dou.ua/forums",
   "permissions": ["https://dou.ua/forums/topic/*", "https://dou.ua/lenta/**/*"],
   "content_scripts": [
     {
-      "matches": ["https://dou.ua/forums/topic/*", "https://dou.ua/lenta/**/*", "https://dou.ua/users/**/*"],
+      "matches": [
+        "https://dou.ua/forums/topic/*",
+        "https://dou.ua/lenta/**/*",
+        "https://dou.ua/users/**/*"
+      ],
       "js": ["extension.js"],
       "css": ["styles.css"]
     }
   ],
   "host_permissions": [],
-  "manifest_version": 3
+  "manifest_version": 3,
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{7ad0af6d-fc3d-48ea-91a6-f14fd8c8a0f7}"
+    }
+  }
 }
