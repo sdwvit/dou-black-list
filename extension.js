@@ -79,7 +79,7 @@ const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
         let text = [];
         if (stats.shouldShowLongVersion) {
             infoBlock.innerHTML = stats.registration;
-            stats.activities.forEach(c => infoBlock.appendChild(c));
+            stats.activities.forEach((c) => infoBlock.appendChild(c));
         }
         else {
             if (stats.activitiesShort[0]) {
@@ -148,7 +148,7 @@ const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
         index[authorName].push(comment);
         if (!index[authorName].stats) {
             if (inProgressPromises > 2) {
-                setTimeout(() => index[authorName].stats = fetchStats(authorName), 100 * inProgressPromises);
+                setTimeout(() => (index[authorName].stats = fetchStats(authorName)), 100 * inProgressPromises);
             }
             else {
                 index[authorName].stats = fetchStats(authorName);
