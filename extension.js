@@ -147,15 +147,16 @@ const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
         }
         index[authorName].push(comment);
         if (!index[authorName].stats) {
-            index[authorName].stats = fetchStats(authorName);
+            if (inProgressPromises > 2) {
+                setTimeout(() => index[authorName].stats = fetchStats(authorName), 100 * inProgressPromises);
+            }
+            else {
+                index[authorName].stats = fetchStats(authorName);
+            }
+            inProgressPromises++;
         }
     }
     async function fetchStats(username) {
-        if (inProgressPromises > 2) {
-            setTimeout(() => fetchStats(username), 100);
-            return Promise.resolve();
-        }
-        inProgressPromises++;
         const response = await fetch(getUrl(username));
         if (!response.ok) {
             return;

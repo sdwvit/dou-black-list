@@ -3,7 +3,7 @@ type Stats = {
   activities: Element[];
   registrationShort: string;
   activitiesShort: string[];
-  shouldShowLongVersion?: boolean
+  shouldShowLongVersion?: boolean;
 };
 type StatsProperty = {
   stats: Stats | Promise<void>;
@@ -103,7 +103,7 @@ const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
     let text = [];
     if (stats.shouldShowLongVersion) {
       infoBlock.innerHTML = stats.registration;
-      stats.activities.forEach(c => infoBlock.appendChild(c));
+      stats.activities.forEach((c) => infoBlock.appendChild(c));
     } else {
       if (stats.activitiesShort[0]) {
         text.push(`${stats.activitiesShort[0]} c.`);
@@ -117,7 +117,7 @@ const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
         e.preventDefault();
         stats.shouldShowLongVersion = true;
         addBanButtonAndInfo(comment);
-      }
+      };
     }
     infoBlock.className = "_ban_infoblock cpointer";
     infoBlock.title = "click";
@@ -174,16 +174,19 @@ const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
     index[authorName].push(comment);
 
     if (!index[authorName].stats) {
-      index[authorName].stats = fetchStats(authorName);
+      if (inProgressPromises > 2) {
+        setTimeout(
+          () => (index[authorName].stats = fetchStats(authorName)),
+          100 * inProgressPromises
+        );
+      } else {
+        index[authorName].stats = fetchStats(authorName);
+      }
+      inProgressPromises++;
     }
   }
 
-  async function fetchStats(username): Promise<void> {
-    if (inProgressPromises > 2) {
-      setTimeout(() => fetchStats(username), 100);
-      return Promise.resolve();
-    }
-    inProgressPromises++;
+  async function fetchStats(username: string): Promise<void> {
     const response = await fetch(getUrl(username));
     if (!response.ok) {
       return;
