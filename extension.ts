@@ -45,16 +45,14 @@ const getAuthor = (comment: DouComment) => {
 
 const getStorage = (): Record<string, boolean> =>
   JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
 
 (() => {
-  let inProgressPromises = 0;
   const storage = getStorage();
   const index: Record<string, Array<DouComment> & StatsProperty> = {};
   const isCommentFromBanned = (comment: DouComment) =>
     !!storage[getAuthor(comment)];
 
-  function updateStorage(key, value) {
+  function updateStorage(key: string, value) {
     storage[key] = value;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
   }
@@ -172,58 +170,6 @@ const getUrl = (username) => `https://dou.ua/users/${username}/activities/`;
       index[authorName] = [] as typeof index[string];
     }
     index[authorName].push(comment);
-
-    if (!index[authorName].stats) {
-      if (inProgressPromises > 2) {
-        setTimeout(
-          () => (index[authorName].stats = fetchStats(authorName)),
-          100 * inProgressPromises
-        );
-      } else {
-        index[authorName].stats = fetchStats(authorName);
-      }
-      inProgressPromises++;
-    }
-  }
-
-  async function fetchStats(username: string): Promise<void> {
-    const response = await fetch(getUrl(username));
-    if (!response.ok) {
-      return;
-    }
-    inProgressPromises--;
-    const text = await response.text();
-    const html = document.createElement("html");
-    html.innerHTML = text;
-    const registration = html
-      .querySelectorAll<HTMLDivElement>(".status-info")[0]
-      .innerText.replace(/\t/g, "")
-      .trim()
-      .split("\n")
-      .slice(-1)[0];
-
-    const registrationShort = (
-      YEAR - parseInt(registration.replace(/[^\d]/g, "").slice(-4), 10)
-    ).toString(10);
-
-    const activities = (
-      [
-        ...html.querySelectorAll(".b-content-menu")[0].childNodes,
-      ] as HTMLLIElement[]
-    )
-      .filter((e) => e.innerText)
-      .slice(1, 3)
-      .map((e) => e.children[0]);
-    const activitiesShort = activities
-      .map((e) => e.querySelector("sub")?.innerText)
-      .filter((_) => _);
-    index[username].stats = {
-      registration,
-      registrationShort,
-      activities,
-      activitiesShort,
-    };
-    index[username].forEach(addBanButtonAndInfo);
   }
 
   console.time(STORAGE_KEY);
